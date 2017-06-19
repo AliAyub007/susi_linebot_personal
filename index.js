@@ -2,12 +2,19 @@
 
 const line = require('@line/bot-sdk');
 const express = require('express');
+var request = require('request');
+var http = require('http');
 
 // create LINE SDK config from env variables
 const config = {
-  channelAccessToken: 'hYLoXRWvzVUNc5DtZSRWEhjRKaT2EmOc/d4f1VcowrBddxl2IY1TkHOZn/QHJLxNZEK4nQRrwLlsiKg2f6roBbMDk/4WB4WSqEymrmSwv01oXhgtiZmUXMyGlqXSW0yDdsfUKRWStKUgNdn//a7SYgdB04t89/1O/w1cDnyilFU=',
-  channelSecret: '63ab12be6cb1f0c8fc3dafd42455e2fd'
+    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+    channelSecret: process.env.CHANNEL_SECRET,
 };
+
+setInterval(function() {
+    http.get('https://susi-slackbot.herokuapp.com/');
+}, 1200000);
+
 
 // create LINE SDK client
 const client = new line.Client(config);
@@ -16,35 +23,74 @@ const client = new line.Client(config);
 // about Express itself: https://expressjs.com/
 const app = express();
 
-app.get('/',function(req, res){
-	res.writeHead(200);
-	res.write('Hi User');
-	res.end();	
-});
 // register a webhook handler with middleware
 // about the middleware, please refer to doc
-app.post('https://susi-linebot.herokuapp.com/callback', line.middleware(config), (req, res) => {
-  Promise
-    .all(req.body.events.map(handleEvent))
-    .then((result) => res.json(result));
+app.post('/webhook', line.middleware(config), (req, res) => {
+    Promise
+        .all(req.body.events.map(handleEvent))
+        .then((result) => res.json(result));
 });
 
 // event handler
 function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    // ignore non-text-message event
-    return Promise.resolve(null);
-  }
+    if (event.type !== 'message' || event.message.type !== 'text') {
+        // ignore non-text-message event
+        return Promise.resolve(null);
+    }
 
-  // create a echoing text message
-  const echo = { type: 'text', text: event.message.text };
+    var options1 = {
+        method: 'GET',
+        url: 'http://api.asksusi.com/susi/chat.json',
+        qs: {
+            timezoneOffset: '-330',
+            q: event.message.text
+        }
+    };
 
-  // use reply API
-  return client.replyMessage(event.replyToken, echo);
+    request(options1, function(error1, response1, body1) {
+        if (error1) throw new Error(error1);
+        // answer fetched from susi
+        //console.log(body1);
+        var type = (JSON.parse(body1)).answers[0].actions;
+        var ans = (JSON.parse(body1)).answers[0].actions[0].expression;
+        // create a echoing text message
+        if (type.length == 1 && type[0].type == "answer") {
+            const answer = {
+                type: 'text',
+                text: ans
+            };
+            // use reply API
+            return client.replyMessage(event.replyToken, answer);
+        } else if (type.length == 3 && type[2].type == "map") {
+            var lat = type[2].latitude;
+            var lon = type[2].longitude;
+
+            const answer1 = [
+			{
+                type: 'text',
+                text: ans
+            }, 
+			{
+                "type": "location",
+                "title": "Location",
+                "address": "Location",
+                "latitude": lat,
+                "longitude": lon
+            }
+			]
+
+            // use reply API
+            return client.replyMessage(event.replyToken, answer1);
+
+        }
+
+    })
+
+
 }
 
 // listen on port
-var port=Number(process.env.PORT || 3000);
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`listening on ${port}`);
+    console.log(`listening on ${port}`);
 });
