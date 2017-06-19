@@ -1,11 +1,14 @@
 {
-  "name": "echo-bot",
-  "version": "0.0.0",
-  "description": "An example LINE bot just to echo messages",
+  "name": "SUSI-Bot",
+  "version": "1.0.0",
+  "description": "SUSI AI LINE bot",
   "main": "index.js",
   "dependencies": {
     "@line/bot-sdk": "^1.0.0",
-    "express": "^4.15.2"
+    "express": "^4.15.2",
+    "request": "^2.81.0"
   },
-  "scripts" : { "start" : "node index.js" }
+  "scripts": {
+    "start": "node index.js"
+  }
 }
