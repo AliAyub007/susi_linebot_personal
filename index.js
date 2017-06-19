@@ -64,6 +64,7 @@ function handleEvent(event) {
         } else if (type.length == 3 && type[2].type == "map") {
             var lat = type[2].latitude;
             var lon = type[2].longitude;
+			var address = (JSON.parse(body1)).answers[0].data[0].place;
 
             const answer1 = [
 			{
@@ -73,7 +74,7 @@ function handleEvent(event) {
 			{
                 "type": "location",
                 "title": "Location",
-                "address": "Location",
+                "address": address,
                 "latitude": lat,
                 "longitude": lon
             }
